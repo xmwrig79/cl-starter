@@ -1,244 +1,298 @@
 """
-Sprite with Moving Platforms
-
-Load a map stored in csv format, as exported by the program 'Tiled.'
-
-Artwork from http://kenney.nl
-
-If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.sprite_moving_platforms
+Sample Python/Pygame Programs
+Simpson College Computer Science
+http://programarcadegames.com/
+http://simpson.edu/computer-science/
+ 
+From:
+http://programarcadegames.com/python_examples/f.php?file=maze_runner.py
+ 
+Explanation video: http://youtu.be/5-SbFanyUkQ
+ 
+Part of a series:
+http://programarcadegames.com/python_examples/f.php?file=move_with_walls_example.py
+http://programarcadegames.com/python_examples/f.php?file=maze_runner.py
+http://programarcadegames.com/python_examples/f.php?file=platform_jumper.py
+http://programarcadegames.com/python_examples/f.php?file=platform_scroller.py
+http://programarcadegames.com/python_examples/f.php?file=platform_moving.py
+http://programarcadegames.com/python_examples/sprite_sheets/
 """
-import arcade
-import os
-
-SPRITE_SCALING = 0.5
-
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 600
-SCREEN_TITLE = "Finding numbers"
-SPRITE_PIXEL_SIZE = 128
-GRID_PIXEL_SIZE = (SPRITE_PIXEL_SIZE * SPRITE_SCALING)
-
-# How many pixels to keep as a minimum margin between the character
-# and the edge of the screen.
-VIEWPORT_MARGIN = SPRITE_PIXEL_SIZE * SPRITE_SCALING
-RIGHT_MARGIN = 4 * SPRITE_PIXEL_SIZE * SPRITE_SCALING
-
-# Physics
-MOVEMENT_SPEED = 10 * SPRITE_SCALING
-JUMP_SPEED = 28 * SPRITE_SCALING
-GRAVITY = .9 * SPRITE_SCALING
-
-
-class MyGame(arcade.Window):
-    """ Main application class. """
-
-    def __init__(self, width, height, title):
-        """
-        Initializer
-        """
-
-        super().__init__(width, height, title)
-
-        # Set the working directory (where we expect to find files) to the same
-        # directory this .py file is in. You can leave this out of your own
-        # code, but it is needed to easily run the examples using "python -m"
-        # as mentioned at the top of this program.
-        file_path = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(file_path)
-
-        # Sprite lists
-        self.all_sprites_list = None
-        self.all_wall_list = None
-        self.static_wall_list = None
-        self.moving_wall_list = None
-        self.player_list = None
-        self.coin_list = None
-
-        # Set up the player
-        self.player_sprite = None
-        self.physics_engine = None
-        self.view_left = 0
-        self.view_bottom = 0
-        self.end_of_map = 0
-        self.game_over = False
-
-    def setup(self):
-        """ Set up the game and initialize the variables. """
-
-        # Sprite lists
-        self.all_wall_list = arcade.SpriteList()
-        self.static_wall_list = arcade.SpriteList()
-        self.moving_wall_list = arcade.SpriteList()
-        self.player_list = arcade.SpriteList()
-
-        # Set up the player
-        self.player_sprite = arcade.Sprite(":resources:images/animated_characters/female_person/femalePerson_idle.png", SPRITE_SCALING)
-        self.player_sprite.center_x = 2 * GRID_PIXEL_SIZE
-        self.player_sprite.center_y = 3 * GRID_PIXEL_SIZE
-        self.player_list.append(self.player_sprite)
-
-        # Create floor
-        for i in range(30):
-            wall = arcade.Sprite(":resources:images/tiles/grassMid.png", SPRITE_SCALING)
-            wall.bottom = 0
-            wall.center_x = i * GRID_PIXEL_SIZE
-            self.static_wall_list.append(wall)
-            self.all_wall_list.append(wall)
-
-        # Create platform side to side
-        wall = arcade.Sprite(":resources:images/tiles/grassMid.png", SPRITE_SCALING)
-        wall.center_y = 3 * GRID_PIXEL_SIZE
-        wall.center_x = 3 * GRID_PIXEL_SIZE
-        wall.boundary_left = 2 * GRID_PIXEL_SIZE
-        wall.boundary_right = 5 * GRID_PIXEL_SIZE
-        wall.change_x = 2 * SPRITE_SCALING
-
-        self.all_wall_list.append(wall)
-        self.moving_wall_list.append(wall)
-
-        # Create platform side to side
-        wall = arcade.Sprite(":resources:images/tiles/grassMid.png", SPRITE_SCALING)
-        wall.center_y = 3 * GRID_PIXEL_SIZE
-        wall.center_x = 7 * GRID_PIXEL_SIZE
-        wall.boundary_left = 5 * GRID_PIXEL_SIZE
-        wall.boundary_right = 9 * GRID_PIXEL_SIZE
-        wall.change_x = -2 * SPRITE_SCALING
-
-        self.all_wall_list.append(wall)
-        self.moving_wall_list.append(wall)
-
-        # Create platform moving up and down
-        wall = arcade.Sprite(":resources:images/tiles/grassMid.png", SPRITE_SCALING)
-        wall.center_y = 5 * GRID_PIXEL_SIZE
-        wall.center_x = 5 * GRID_PIXEL_SIZE
-        wall.boundary_top = 8 * GRID_PIXEL_SIZE
-        wall.boundary_bottom = 4 * GRID_PIXEL_SIZE
-        wall.change_y = 2 * SPRITE_SCALING
-
-        self.all_wall_list.append(wall)
-        self.moving_wall_list.append(wall)
-
-        # Create platform moving diagonally
-        wall = arcade.Sprite(":resources:images/tiles/grassMid.png", SPRITE_SCALING)
-        wall.center_y = 5 * GRID_PIXEL_SIZE
-        wall.center_x = 8 * GRID_PIXEL_SIZE
-        wall.boundary_left = 7 * GRID_PIXEL_SIZE
-        wall.boundary_right = 9 * GRID_PIXEL_SIZE
-
-        wall.boundary_top = 8 * GRID_PIXEL_SIZE
-        wall.boundary_bottom = 4 * GRID_PIXEL_SIZE
-        wall.change_x = 2 * SPRITE_SCALING
-        wall.change_y = 2 * SPRITE_SCALING
-
-        self.all_wall_list.append(wall)
-        self.moving_wall_list.append(wall)
-
-        self.physics_engine = \
-            arcade.PhysicsEnginePlatformer(self.player_sprite,
-                                           self.all_wall_list,
-                                           gravity_constant=GRAVITY)
-
-        # Set the background color
-        arcade.set_background_color(arcade.color.AMAZON)
-
-        # Set the viewport boundaries
-        # These numbers set where we have 'scrolled' to.
-        self.view_left = 0
-        self.view_bottom = 0
-
-        self.game_over = False
-
-    def on_draw(self):
-        """
-        Render the screen.
-        """
-
-        # This command has to happen before we start drawing
-        arcade.start_render()
-
-        # Draw the sprites.
-        self.static_wall_list.draw()
-        self.moving_wall_list.draw()
-        self.player_list.draw()
-
-        # Put the text on the screen.
-        # Adjust the text position based on the viewport so that we don't
-        # scroll the text too.
-        distance = self.player_sprite.right
-        output = f"Distance: {distance}"
-        arcade.draw_text(output, self.view_left + 10, self.view_bottom + 20,
-                         arcade.color.WHITE, 14)
-
-    def on_key_press(self, key, modifiers):
-        """
-        Called whenever the mouse moves.
-        """
-        if key == arcade.key.UP:
-            if self.physics_engine.can_jump():
-                self.player_sprite.change_y = JUMP_SPEED
-        elif key == arcade.key.LEFT:
-            self.player_sprite.change_x = -MOVEMENT_SPEED
-        elif key == arcade.key.RIGHT:
-            self.player_sprite.change_x = MOVEMENT_SPEED
-
-    def on_key_release(self, key, modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-        if key == arcade.key.LEFT or key == arcade.key.RIGHT:
-            self.player_sprite.change_x = 0
-
-    def on_update(self, delta_time):
-        """ Movement and game logic """
-
-        # Call update on all sprites
-        self.physics_engine.update()
-
-        # --- Manage Scrolling ---
-
-        # Track if we need to change the viewport
-
-        changed = False
-
-        # Scroll left
-        left_boundary = self.view_left + VIEWPORT_MARGIN
-        if self.player_sprite.left < left_boundary:
-            self.view_left -= left_boundary - self.player_sprite.left
-            changed = True
-
-        # Scroll right
-        right_boundary = self.view_left + SCREEN_WIDTH - RIGHT_MARGIN
-        if self.player_sprite.right > right_boundary:
-            self.view_left += self.player_sprite.right - right_boundary
-            changed = True
-
-        # Scroll up
-        top_boundary = self.view_bottom + SCREEN_HEIGHT - VIEWPORT_MARGIN
-        if self.player_sprite.top > top_boundary:
-            self.view_bottom += self.player_sprite.top - top_boundary
-            changed = True
-
-        # Scroll down
-        bottom_boundary = self.view_bottom + VIEWPORT_MARGIN
-        if self.player_sprite.bottom < bottom_boundary:
-            self.view_bottom -= bottom_boundary - self.player_sprite.bottom
-            changed = True
-
-        # If we need to scroll, go ahead and do it.
-        if changed:
-            arcade.set_viewport(self.view_left,
-                                SCREEN_WIDTH + self.view_left,
-                                self.view_bottom,
-                                SCREEN_HEIGHT + self.view_bottom)
-
-
+import pygame
+ 
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+PURPLE = (255, 0, 255)
+ 
+ 
+class Wall(pygame.sprite.Sprite):
+    """This class represents the bar at the bottom that the player controls """
+ 
+    def __init__(self, x, y, width, height, color):
+        """ Constructor function """
+ 
+        # Call the parent's constructor
+        super().__init__()
+ 
+        # Make a BLUE wall, of the size specified in the parameters
+        self.image = pygame.Surface([width, height])
+        self.image.fill(color)
+ 
+        # Make our top-left corner the passed-in location.
+        self.rect = self.image.get_rect()
+        self.rect.y = y
+        self.rect.x = x
+ 
+ 
+class Player(pygame.sprite.Sprite):
+    """ This class represents the bar at the bottom that the
+    player controls """
+ 
+    # Set speed vector
+    change_x = 0
+    change_y = 0
+ 
+    def __init__(self, x, y):
+        """ Constructor function """
+ 
+        # Call the parent's constructor
+        super().__init__()
+ 
+        # Set height, width
+        self.image = pygame.Surface([15, 15])
+        self.image.fill(WHITE)
+ 
+        # Make our top-left corner the passed-in location.
+        self.rect = self.image.get_rect()
+        self.rect.y = y
+        self.rect.x = x
+ 
+    def changespeed(self, x, y):
+        """ Change the speed of the player. Called with a keypress. """
+        self.change_x += x
+        self.change_y += y
+ 
+    def move(self, walls):
+        """ Find a new position for the player """
+ 
+        # Move left/right
+        self.rect.x += self.change_x
+ 
+        # Did this update cause us to hit a wall?
+        block_hit_list = pygame.sprite.spritecollide(self, walls, False)
+        for block in block_hit_list:
+            # If we are moving right, set our right side to the left side of
+            # the item we hit
+            if self.change_x > 0:
+                self.rect.right = block.rect.left
+            else:
+                # Otherwise if we are moving left, do the opposite.
+                self.rect.left = block.rect.right
+ 
+        # Move up/down
+        self.rect.y += self.change_y
+ 
+        # Check and see if we hit anything
+        block_hit_list = pygame.sprite.spritecollide(self, walls, False)
+        for block in block_hit_list:
+ 
+            # Reset our position based on the top/bottom of the object.
+            if self.change_y > 0:
+                self.rect.bottom = block.rect.top
+            else:
+                self.rect.top = block.rect.bottom
+ 
+ 
+class Room(object):
+    """ Base class for all rooms. """
+ 
+    # Each room has a list of walls, and of enemy sprites.
+    wall_list = None
+    enemy_sprites = None
+ 
+    def __init__(self):
+        """ Constructor, create our lists. """
+        self.wall_list = pygame.sprite.Group()
+        self.enemy_sprites = pygame.sprite.Group()
+ 
+ 
+class Room1(Room):
+    """This creates all the walls in room 1"""
+    def __init__(self):
+        super().__init__()
+        # Make the walls. (x_pos, y_pos, width, height)
+ 
+        # This is a list of walls. Each is in the form [x, y, width, height]
+        walls = [[0, 0, 20, 250, WHITE],
+                 [0, 350, 20, 250, WHITE],
+                 [780, 0, 20, 250, WHITE],
+                 [780, 350, 20, 250, WHITE],
+                 [20, 0, 760, 20, WHITE],
+                 [20, 580, 760, 20, WHITE],
+                 [390, 560, 20, 500, BLUE]
+                ]
+ 
+        # Loop through the list. Create the wall, add it to the list
+        for item in walls:
+            wall = Wall(item[0], item[1], item[2], item[3], item[4])
+            self.wall_list.add(wall)
+ 
+ 
+class Room2(Room):
+    """This creates all the walls in room 2"""
+    def __init__(self):
+        super().__init__()
+ 
+        walls = [[0, 0, 20, 250, RED],
+                 [0, 350, 20, 250, RED],
+                 [780, 0, 20, 250, RED],
+                 [780, 350, 20, 250, RED],
+                 [20, 0, 760, 20, RED],
+                 [20, 580, 760, 20, RED],
+                 [190, 50, 20, 500, GREEN],
+                 [590, 50, 20, 500, GREEN]
+                ]
+ 
+        for item in walls:
+            wall = Wall(item[0], item[1], item[2], item[3], item[4])
+            self.wall_list.add(wall)
+ 
+ 
+class Room3(Room):
+    """This creates all the walls in room 3"""
+    def __init__(self):
+        super().__init__()
+ 
+        walls = [[0, 0, 50, 250, PURPLE],
+                 [0, 350, 20, 250, PURPLE],
+                 [780, 0, 10, 250, PURPLE],
+                 [780, 350, 275, 250, PURPLE],
+                 [20, 0, 760, 20, PURPLE],
+                 [20, 580, 760, 20, PURPLE]
+                ]
+ 
+        for item in walls:
+            wall = Wall(item[0], item[1], item[2], item[3], item[4])
+            self.wall_list.add(wall)
+ 
+        for x in range(100, 800, 100):
+            for y in range(50, 451, 300):
+                wall = Wall(x, y, 20, 200, RED)
+                self.wall_list.add(wall)
+ 
+        for x in range(150, 700, 100):
+            wall = Wall(x, 200, 20, 200, WHITE)
+            self.wall_list.add(wall)
+ 
+ 
 def main():
-    """ Main method """
-    window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-    window.setup()
-    arcade.run()
-
-
+    """ Main Program """
+ 
+    # Call this function so the Pygame library can initialize itself
+    pygame.init()
+ 
+    # Create an 800x600 sized screen
+    screen = pygame.display.set_mode([800, 600])
+ 
+    # Set the title of the window
+    pygame.display.set_caption('Do not touch the walls')
+ 
+    # Create the player paddle object
+    player = Player(50, 50)
+    movingsprites = pygame.sprite.Group()
+    movingsprites.add(player)
+ 
+    rooms = []
+ 
+    room = Room1()
+    rooms.append(room)
+ 
+    room = Room2()
+    rooms.append(room)
+ 
+    room = Room3()
+    rooms.append(room)
+ 
+    current_room_no = 0
+    current_room = rooms[current_room_no]
+ 
+    clock = pygame.time.Clock()
+ 
+    done = False
+ 
+    while not done:
+ 
+        # --- Event Processing ---
+ 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+ 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    player.changespeed(-5, 0)
+                if event.key == pygame.K_RIGHT:
+                    player.changespeed(5, 0)
+                if event.key == pygame.K_UP:
+                    player.changespeed(0, -5)
+                if event.key == pygame.K_DOWN:
+                    player.changespeed(0, 5)
+ 
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    player.changespeed(5, 0)
+                if event.key == pygame.K_RIGHT:
+                    player.changespeed(-5, 0)
+                if event.key == pygame.K_UP:
+                    player.changespeed(0, 5)
+                if event.key == pygame.K_DOWN:
+                    player.changespeed(0, -5)
+ 
+        # --- Game Logic ---
+ 
+        player.move(current_room.wall_list)
+ 
+        if player.rect.x < -15:
+            if current_room_no == 0:
+                current_room_no = 2
+                current_room = rooms[current_room_no]
+                player.rect.x = 790
+            elif current_room_no == 2:
+                current_room_no = 1
+                current_room = rooms[current_room_no]
+                player.rect.x = 790
+            else:
+                current_room_no = 0
+                current_room = rooms[current_room_no]
+                player.rect.x = 790
+ 
+        if player.rect.x > 801:
+            if current_room_no == 0:
+                current_room_no = 1
+                current_room = rooms[current_room_no]
+                player.rect.x = 0
+            elif current_room_no == 1:
+                current_room_no = 2
+                current_room = rooms[current_room_no]
+                player.rect.x = 0
+            else:
+                current_room_no = 0
+                current_room = rooms[current_room_no]
+                player.rect.x = 0
+ 
+        # --- Drawing ---
+        screen.fill(BLACK)
+ 
+        movingsprites.draw(screen)
+        current_room.wall_list.draw(screen)
+ 
+        pygame.display.flip()
+ 
+        clock.tick(60)
+ 
+    pygame.quit()
+ 
 if __name__ == "__main__":
     main()
