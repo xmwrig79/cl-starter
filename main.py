@@ -7,8 +7,6 @@ http://simpson.edu/computer-science/
 From:
 http://programarcadegames.com/python_examples/f.php?file=maze_runner.py
  
-Explanation video: http://youtu.be/5-SbFanyUkQ
- 
 Part of a series:
 http://programarcadegames.com/python_examples/f.php?file=move_with_walls_example.py
 http://programarcadegames.com/python_examples/f.php?file=maze_runner.py
@@ -117,7 +115,13 @@ class Room(object):
         self.wall_list = pygame.sprite.Group()
         self.enemy_sprites = pygame.sprite.Group()
  
- 
+ class wall(walls):
+     """ All the walls in all rooms"""
+     
+     wall_list = None
+     enemy_sprites = None
+ if touch: self.you die
+
 class Room1(Room):
     """This creates all the walls in room 1"""
     def __init__(self):
@@ -127,9 +131,9 @@ class Room1(Room):
         # This is a list of walls. Each is in the form [x, y, width, height]
         walls = [[0, 0, 20, 250, WHITE],
                  [0, 350, 20, 250, WHITE],
-                 [780, 0, 20, 250, WHITE],
+                 [780, 40, 20, 250, WHITE],
                  [780, 350, 20, 250, WHITE],
-                 [20, 0, 760, 20, WHITE],
+                 [20, 66, 760, 20, WHITE],
                  [20, 580, 760, 20, WHITE],
                  [390, 560, 20, 500, BLUE]
                 ]
